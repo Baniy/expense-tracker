@@ -1,0 +1,1 @@
+ /home/user/expense-tracker/.dart_tool/flutter_build/b2d1f9a83d9e03adaf97ef701ed46176/dart_build_result.json:  /home/user/expense-tracker/.dart_tool/package_config.json /home/user/expense-tracker/pubspec.yaml /opt/flutter/bin/cache/dart-sdk/version
