@@ -107,11 +107,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ]),
         const SizedBox(height: 8),
         catsAsync.when(
-          data: (cats) => DropdownButtonFormField<String>(
+          data: (cats) => DropdownButtonFormField<String?>(
             value: _categoryId,
-            items: [const DropdownMenuItem(value: null, child: Text('All'))]
-                .followedBy(cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))))
-                .toList(),
+            items: [const DropdownMenuItem<String?>(value: null, child: Text('All')),
+                ...cats.map((c) => DropdownMenuItem<String?>(value: c.id, child: Text(c.name)))],
             onChanged: (v) => setState(() => _categoryId = v),
             decoration: const InputDecoration(labelText: 'Category'),
           ),

@@ -9,8 +9,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'firestore_service.dart';
+import '../providers/firestore_providers.dart';
 
-final syncServiceProvider = Provider<SyncService>((ref) => SyncService(ref.read));
+final syncServiceProvider = Provider<SyncService>((ref) => SyncService(ref));
 
 class _QueuedOp {
   final String id;
@@ -42,7 +43,7 @@ class _QueuedOp {
 }
 
 class SyncService {
-  final Reader _read;
+  final Ref _read;
   final List<_QueuedOp> _queue = [];
   late final File _queueFile;
 
@@ -50,7 +51,7 @@ class SyncService {
   StreamSubscription<ConnectivityResult>? _connectivitySub;
   bool _running = false;
 
-  SyncService(this._read) {
+  SyncService(Ref ref) : _read = ref {
     _init();
   }
 
@@ -125,7 +126,7 @@ class SyncService {
       if (connectivity == ConnectivityResult.none) return;
       if (_queue.isEmpty) return;
 
-      final fs = _read(firestoreServiceProvider);
+      final fs = _read.read(firestoreServiceProvider);
       // Attempt to flush
       final remaining = <_QueuedOp>[];
       for (final op in List<_QueuedOp>.from(_queue)) {
