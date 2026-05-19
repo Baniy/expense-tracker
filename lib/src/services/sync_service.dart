@@ -45,6 +45,8 @@ class SyncService {
   final Reader _read;
   final List<_QueuedOp> _queue = [];
   late final File _queueFile;
+
+  static const _allowedCollections = {'transactions', 'categories', 'budgets'};
   StreamSubscription<ConnectivityResult>? _connectivitySub;
   bool _running = false;
 
@@ -77,8 +79,8 @@ class SyncService {
           _queue.addAll(list.map((e) => _QueuedOp.fromJson(e as Map<String, dynamic>)));
         }
       }
-    } catch (e) {
-      if (kDebugMode) print('Failed to load sync queue: $e');
+    } catch (_) {
+      if (kDebugMode) print('Failed to load sync queue');
     }
   }
 
@@ -86,12 +88,13 @@ class SyncService {
     try {
       final json = jsonEncode(_queue.map((e) => e.toJson()).toList());
       await _queueFile.writeAsString(json, flush: true);
-    } catch (e) {
-      if (kDebugMode) print('Failed to save sync queue: $e');
+    } catch (_) {
+      if (kDebugMode) print('Failed to save sync queue');
     }
   }
 
   Future<void> enqueueSet(String uid, String collection, String docId, Map<String, dynamic> data) async {
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final op = _QueuedOp(id: const Uuid().v4(), uid: uid, op: 'set', collection: collection, docId: docId, data: data);
     _queue.add(op);
     await _saveQueue();
@@ -99,6 +102,7 @@ class SyncService {
   }
 
   Future<void> enqueueUpdate(String uid, String collection, String docId, Map<String, dynamic> data) async {
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final op = _QueuedOp(id: const Uuid().v4(), uid: uid, op: 'update', collection: collection, docId: docId, data: data);
     _queue.add(op);
     await _saveQueue();
@@ -106,6 +110,7 @@ class SyncService {
   }
 
   Future<void> enqueueDelete(String uid, String collection, String docId) async {
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final op = _QueuedOp(id: const Uuid().v4(), uid: uid, op: 'delete', collection: collection, docId: docId);
     _queue.add(op);
     await _saveQueue();
@@ -132,10 +137,9 @@ class SyncService {
           } else if (op.op == 'delete') {
             await fs.deleteDocument(op.uid, op.collection, op.docId);
           }
-        } catch (e) {
-          // keep for retry
+        } catch (_) {
           remaining.add(op);
-          if (kDebugMode) print('Sync op failed, will retry: ${op.id} -> $e');
+          if (kDebugMode) print('Sync op failed, will retry: ${op.id}');
         }
       }
       _queue

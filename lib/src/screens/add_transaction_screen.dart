@@ -51,12 +51,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (uid == null) return;
     final svc = ref.read(firestoreServiceProvider);
     final id = widget.existing?.id ?? const Uuid().v4();
+    final amount = double.tryParse(_amountCtrl.text);
+    if (amount == null || amount <= 0 || amount > 999999999) return;
     final tx = TransactionModel(
       id: id,
       type: _type,
       categoryId: _categoryId ?? 'uncategorized',
-      amount: double.tryParse(_amountCtrl.text) ?? 0.0,
-      currency: 'BDT',
+      amount: amount,
+      currency: _currency,
       note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
       date: _date,
     );
@@ -128,7 +130,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     controller: _amountCtrl,
                     decoration: const InputDecoration(labelText: 'Amount'),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    validator: (v) => (v == null || double.tryParse(v) == null) ? 'Enter an amount' : null,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Enter an amount';
+                      final n = double.tryParse(v);
+                      if (n == null || n <= 0) return 'Enter a positive amount';
+                      if (n > 999999999) return 'Amount too large';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -166,6 +174,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               TextFormField(
                 controller: _noteCtrl,
                 decoration: const InputDecoration(labelText: 'Note (optional)'),
+                maxLength: 500,
+                validator: (v) => (v != null && v.length > 500) ? 'Note must be 500 characters or fewer' : null,
               ),
               const SizedBox(height: 12),
               ElevatedButton(onPressed: _save, child: const Text('Save'))
