@@ -26,8 +26,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         await auth.signIn(_emailController.text.trim(), _passwordController.text.trim());
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sign in failed. Please check your credentials and try again.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -55,7 +59,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _passwordController,
                 decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                validator: (v) => (v == null || v.length < 6) ? 'Min 6 chars' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Password required';
+                  if (v.length < 8) return 'Minimum 8 characters';
+                  if (_isSignUp && !v.contains(RegExp(r'[A-Z]'))) return 'Include at least one uppercase letter';
+                  if (_isSignUp && !v.contains(RegExp(r'[0-9]'))) return 'Include at least one number';
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
               _isLoading

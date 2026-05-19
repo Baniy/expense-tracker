@@ -1,9 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/transaction_model.dart';
 import '../models/category_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  void _assertAuthorized(String uid) {
+    final currentUid = _auth.currentUser?.uid;
+    if (currentUid == null || currentUid != uid) {
+      throw Exception('Not authorized');
+    }
+  }
 
   CollectionReference userDoc(String uid) => _db.collection('users').doc(uid).collection('meta');
 
@@ -14,11 +23,13 @@ class FirestoreService {
       _db.collection('users').doc(uid).collection('categories');
 
   Future<void> addTransaction(String uid, TransactionModel t) async {
+    _assertAuthorized(uid);
     final doc = transactionsCol(uid).doc(t.id);
     await doc.set(t.toMap());
   }
 
   Future<void> updateTransaction(String uid, TransactionModel t) async {
+    _assertAuthorized(uid);
     final doc = transactionsCol(uid).doc(t.id);
     // Use merge to avoid overwriting other fields; updatedAt is set server-side
     await doc.set({
@@ -33,6 +44,7 @@ class FirestoreService {
   }
 
   Future<void> deleteTransaction(String uid, String tid) async {
+    _assertAuthorized(uid);
     await transactionsCol(uid).doc(tid).delete();
   }
 
@@ -48,6 +60,7 @@ class FirestoreService {
   CollectionReference budgetsCol(String uid) => _db.collection('users').doc(uid).collection('budgets');
 
   Future<void> setBudget(String uid, String categoryId, double amount) async {
+    _assertAuthorized(uid);
     final doc = budgetsCol(uid).doc(categoryId);
     await doc.set({'categoryId': categoryId, 'amount': amount, 'updatedAt': FieldValue.serverTimestamp()});
   }
@@ -77,6 +90,7 @@ class FirestoreService {
 
   // Categories
   Future<void> addCategory(String uid, CategoryModel c) async {
+    _assertAuthorized(uid);
     await categoriesCol(uid).doc(c.id).set(c.toMap());
   }
 
@@ -117,18 +131,26 @@ class FirestoreService {
     await batch.commit();
   }
 
+  static const _allowedCollections = {'transactions', 'categories', 'budgets'};
+
   // Generic raw document operations used by SyncService
   Future<void> setDocument(String uid, String collection, String docId, Map<String, dynamic> data) async {
+    _assertAuthorized(uid);
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final docRef = _db.collection('users').doc(uid).collection(collection).doc(docId);
     await docRef.set(data);
   }
 
   Future<void> updateDocument(String uid, String collection, String docId, Map<String, dynamic> data) async {
+    _assertAuthorized(uid);
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final docRef = _db.collection('users').doc(uid).collection(collection).doc(docId);
     await docRef.update(data);
   }
 
   Future<void> deleteDocument(String uid, String collection, String docId) async {
+    _assertAuthorized(uid);
+    if (!_allowedCollections.contains(collection)) throw ArgumentError('Collection not allowed: $collection');
     final docRef = _db.collection('users').doc(uid).collection(collection).doc(docId);
     await docRef.delete();
   }

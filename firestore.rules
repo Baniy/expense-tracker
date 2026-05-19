@@ -2,6 +2,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/{document=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // all writes via subcollection rules below
+    }
+
+    match /users/{userId}/transactions/{txId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId
+                    && isValidTransaction(request.resource.data);
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && isValidTransaction(request.resource.data);
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/categories/{catId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId
+                    && isValidCategory(request.resource.data);
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && isValidCategory(request.resource.data);
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/budgets/{budgetId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+                   && isValidBudget(request.resource.data);
+    }
+
+    match /users/{userId}/meta/{doc} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -9,5 +38,39 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if false;
     }
+  }
+
+  function isValidTransaction(data) {
+    return data.keys().hasAll(['id', 'type', 'categoryId', 'amount', 'currency', 'date'])
+      && data.type in ['income', 'expense']
+      && data.amount is number
+      && data.amount > 0
+      && data.amount <= 999999999
+      && data.currency in ['BDT', 'USD', 'EUR']
+      && data.id is string
+      && data.id.size() > 0
+      && data.categoryId is string
+      && data.categoryId.size() > 0
+      && data.date is timestamp
+      && (!('note' in data) || data.note == null || (data.note is string && data.note.size() <= 500));
+  }
+
+  function isValidCategory(data) {
+    return data.keys().hasAll(['id', 'name', 'type', 'color', 'icon'])
+      && data.type in ['income', 'expense']
+      && data.name is string
+      && data.name.size() > 0
+      && data.name.size() <= 100
+      && data.color is int
+      && data.icon is string;
+  }
+
+  function isValidBudget(data) {
+    return data.keys().hasAll(['categoryId', 'amount'])
+      && data.amount is number
+      && data.amount > 0
+      && data.amount <= 999999999
+      && data.categoryId is string
+      && data.categoryId.size() > 0;
   }
 }
