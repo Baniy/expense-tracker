@@ -131,7 +131,12 @@ class FirestoreService {
     await batch.commit();
   }
 
-  static const _allowedCollections = {'transactions', 'categories', 'budgets'};
+  static const _allowedCollections = {
+    'transactions',
+    'categories',
+    'budgets',
+    'recurring_transactions',
+  };
 
   // Generic raw document operations used by SyncService
   Future<void> setDocument(String uid, String collection, String docId, Map<String, dynamic> data) async {
