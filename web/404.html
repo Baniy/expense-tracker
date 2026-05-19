@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Expense Tracker</title>
+  <script>
+    // SPA redirect for GitHub Pages: store the path in sessionStorage and
+    // redirect to index.html so Flutter router can handle it.
+    var path = window.location.pathname;
+    var query = window.location.search;
+    var hash = window.location.hash;
+    sessionStorage.setItem('redirect', path + query + hash);
+    window.location.replace('/expense-tracker/');
+  </script>
+</head>
+<body></body>
+</html>
